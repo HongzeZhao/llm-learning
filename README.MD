@@ -1,9 +1,80 @@
-# 大语言模型浅尝辄止
+# LLM TASTE AND TURN BACK
 
-## Meta Llama3初体验
+## Try Meta LLaMA
 
 [Introducing Meta Llama 3: The most capable openly available LLM to date](https://ai.meta.com/blog/meta-llama-3/)
+
 [Llama3 Github](https://github.com/meta-llama/llama3/blob/main/README.md)
+
+[Llama3 HuggingFace](https://huggingface.co/meta-llama/Meta-Llama-3-8B)
+
+```Python
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from torch.nn import DataParallel
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+
+print("gpu device count:", torch.cuda.device_count())
+
+quant_config=BitsAndBytesConfig(
+            load_in_8bit=True,
+            #bnb_4bit_compute_dtype=torch.float16
+        )
+
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct")
+model = AutoModelForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct",
+                                             quantization_config=quant_config,
+                                             low_cpu_mem_usage=True)
+
+from transformers import pipeline
+
+textgen = pipeline(
+    "text-generation",
+    model=model,
+    device_map="auto",
+    tokenizer=tokenizer
+    )
+
+sequences = textgen(
+    "i want to start up a company, firstly i should",
+    do_sample=True,
+    top_k=10,
+    num_return_sequences=1,
+    eos_token_id=tokenizer.eos_token_id,
+    max_length=1024,
+    truncation=True,
+)
+for seq in sequences:
+    print(f"Result: {seq['generated_text']}")
+```
+
+## Tokenizer
+
+[Hugging Face Tokenizer Course](https://huggingface.co/learn/nlp-course/en/chapter2/4?fw=pt)
+
+[Tiktokenizer](https://github.com/openai/tiktoken)
+
+[Try Tokenize Online!](https://platform.openai.com/tokenizer)
+
+**[Byte pair encoding](https://en.wikipedia.org/wiki/Byte_pair_encoding#cite_note-2022Book_-8)**
+In the first step, assumes all unique characters to be an initial set of 1-character long n-grams (i.e. initial "tokens"). Then, successively the most frequent pair of adjacent characters is merged into a new, 2-character long n-gram and all instances of the pair are replaced by this new token. This is repeated until a vocabulary of prescribed size is obtained. Note that new words can always be constructed from final vocabulary tokens and initial-set characters.
+
+## Sampling
+![Predict the next token](https://api.wandb.ai/files/darek/images/projects/37727390/9ec381c5.gif)
+
+Trade-off between randomness and predictability in the model's output.
+
+- **Greedy Decoding**: *argmax* at each step.
+- **Beam Search**: *argmax* over multiple candidate sequences.
+- **Sampling with Temperature**
+$$probilities=softmax(\frac{logits}{temperature})$$
+    - A temperature close to zero makes the distribution sharper, meaning the model is more likely to choose the word with the highest probability.
+    - As the temperature increases, the distribution becomes flatter, and the model is more likely to choose a less probable word. In other words, higher temperatures lead to more randomness and diversity in the generated text.
+- **Top-k Sampling**: keep top k tokens.
+- **Top-p Sampling**: Only considers the smallest set of top words whose cumulative probability exceeds a certain threshold, $p$. 
+![TopK-and-TopP](https://miro.medium.com/v2/resize:fit:720/format:webp/0*J37qonVPJvKZpzv2)
 
 ## Fine-tuning
 
@@ -12,7 +83,6 @@ An effective strategy for finetuning LLMs is to train a small number of trainabl
 PEFT may yield suboptimal performance for downstream tasks compared to full parameter finetuning.
 
 - [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/pdf/2106.09685)
-业界主流微调框架
 
 $$
 \begin{align}
@@ -26,7 +96,7 @@ $$
 
 ### Memory Efficient Full Parameter Finetuning
 
-有限（显卡）内存全量参数微调
+Fine-tune with limited (GPU) memory.
 
 - [LOMO: Full Parameter Fine-Tuning for Large Language Models with Limited Resources](https://arxiv.org/pdf/2306.09782)
 - [AdaLomo: Low-memory Optimization with Adaptive Learning Rate](https://arxiv.org/abs/2310.10195)
@@ -36,8 +106,6 @@ $$
 - [BAdam: A Memory Efficient Full Parameter Training Method for Large Language Models](https://arxiv.org/abs/2404.02827)
  支持单卡（RTX 3090, 显存24G）微调 Llama3-8B
 ![badam](images/badam.png)
-
-## Tokenizer
 
 ## Quantization
 Quantization is a model compression technique that converts the weights and activations within an LLM from a high-precision data representation to a lower-precision data representation, i.e., from a data type that can hold more information to one that holds less. A typical example of this is the conversion of data from a 32-bit floating-point number (FP32) to an 8-bit or 4-bit integer (INT4 or INT8). 
@@ -98,12 +166,13 @@ Retrieval-augmented generation (RAG) is a technique for enhancing the accuracy a
 ![RAG](https://blogs.nvidia.com/wp-content/uploads/2023/11/NVIDIA-RAG-diagram-scaled.jpg)
 
 
-## 大模型列表
+## LLM List
 
 [开源基础大模型](https://github.com/wgwang/awesome-open-foundation-models)
 [中国大模型](https://github.com/wgwang/awesome-LLMs-In-China)
+[大语言模型分类](https://github.com/HqWu-HITCS/Awesome-Chinese-LLM?tab=readme-ov-file)
 
-## 大模型工具
+## LLM Application Open-Source Lib
 
 - **[LangChain](https://python.langchain.com/docs/get_started/introduction)**
 
@@ -115,9 +184,9 @@ Retrieval-augmented generation (RAG) is a technique for enhancing the accuracy a
  - Productionization: Inspect, monitor, and evaluate your apps with LangSmith so that you can constantly optimize and deploy with confidence.
  - Deployment: Turn any chain into a REST API with LangServe.
 
-## 大模型应用
+## Application in Industry
 
-- **私有大模型**
+- **Private LLM**
 让大模型学会企业知识和业务流程，提升准确率和多模态输出
 
-- 
+- [AI大模型工业应用现状、模式与展望](https://www.china-aii.com/newsinfo/6697028.html?templateId=1562271)
