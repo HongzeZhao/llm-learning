@@ -1,4 +1,4 @@
-# LLM TASTE AND TURN BACK
+# A TASTE OF LLM
 
 ## Try Meta LLaMA
 
