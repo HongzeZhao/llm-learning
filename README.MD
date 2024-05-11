@@ -78,6 +78,8 @@ $$probilities=softmax(\frac{logits}{temperature})$$
 
 ## Fine-tuning
 
+Huggingface lib: [PEFT](https://github.com/huggingface/peft)
+
 ### Parameter Efficient Finetuning (PEFT)
 An effective strategy for finetuning LLMs is to train a small number of trainable parameters that are added to the original base model, while keeping the majority of the pretrained parameters frozen. 
 PEFT may yield suboptimal performance for downstream tasks compared to full parameter finetuning.
